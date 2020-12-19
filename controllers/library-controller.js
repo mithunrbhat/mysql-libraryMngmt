@@ -1,25 +1,20 @@
 const url = require('url');
 // const sugerDisplay = require('../utils/sugerCoatJson');
 
-// const fileRW = require('../utils/fileReadWrite');
-// const objGiver = require('../utils/objGiver');
-
-// const filePath = 'mock.json';
-
 const mysql = require('mysql');
 
-const db = mysql.createConnection({
+const bookdb = mysql.createConnection({
     host : 'localhost',
     user : 'root',
     password : 'password',
     database : 'bookdb',
 });
 
-db.connect((err)=>{
+bookdb.connect((err)=>{
     if(err){
         return console.log('connection' + err);
     }
-    console.log('mysql connected...');
+    console.log('bookdb connected...');
 });
 
 function getAll(req, res) {
@@ -39,7 +34,7 @@ function getAll(req, res) {
                 break;
         }
 
-        db.query(sql, (err, results)=>{
+        bookdb.query(sql, (err, results)=>{
             if(err) console.log('query' + err);
             res.json(results);
         });
@@ -51,8 +46,7 @@ function getAll(req, res) {
 
 function getById(req, res) {
     try {
-        let category = req.params.category;
-        let id = req.params.id;
+        const {category, id} = req.params;
         let sql = "";
 
         switch(category) {
@@ -67,9 +61,10 @@ function getById(req, res) {
                 break;;
         }
 
-        db.query(sql, (err, results)=>{
-            if(err) console.log('query' + err);
-            res.json(results);
+        bookdb.query(sql, (err, results)=>{
+            if(err) return console.log('query' + err);
+            if(results.length > 0) res.json(results);
+            else res.json({"message": "Invalid ID"})
         });
 
     } catch (error) {
@@ -84,17 +79,17 @@ function addItem(req, res) {
 
         switch(category) {
             case 'book': 
-                sql = `INSERT INTO book (id, title, totalPages, rating, isbn, publishedDate, authorId, publisherId) VALUES (null, ${req.params.title}, ${req.params.totalPages}, ${req.params.rating}, ${req.params.isbn}, ${req.params.publishedDate }, ${req.params.authorId }, ${req.params.publisherId})`;
+                sql = `INSERT INTO book (id, title, totalPages, rating, isbn, publishedDate, authorId, publisherId) VALUES (null, ${JSON.stringify(req.body.title)}, ${JSON.stringify(req.body.totalPages)}, ${JSON.stringify(req.body.rating)}, ${JSON.stringify(req.body.isbn)}, ${JSON.stringify(req.body.publishedDate)}, ${JSON.stringify(req.body.authorId)}, ${JSON.stringify(req.body.publisherId)})`;
                 break;
             case 'author':
                 sql = `INSERT INTO author (id, name, email, dob) VALUES (null, ${JSON.stringify(req.body.name)}, ${JSON.stringify(req.body.email)}, ${JSON.stringify(req.body.dob)})`;
                 break;
             case 'publisher': 
-                sql = `INSERT INTO publisher (id, name, email, contact, established) VALUES (null, ${req.params.name}, ${req.params.email}, ${req.params.contact}, ${req.params.established})`;
+                sql = `INSERT INTO publisher (id, name, email, contact, established) VALUES (null, ${JSON.stringify(req.body.name)}, ${JSON.stringify(req.body.email)}, ${JSON.stringify(req.body.contact)}, ${JSON.stringify(req.body.established)})`;
                 break;;
         }
 
-        db.query(sql, (err, results)=>{
+        bookdb.query(sql, (err, results)=>{
             if(err) console.log('query' + err);
             res.json(results);
         });
@@ -104,18 +99,32 @@ function addItem(req, res) {
     }
 }
 
-// async function deleteItem(req, res) {
-//     try {
-//         let category = req.params.category;
-//         let dataObj = objGiver.returnObjs();
-//         dataObj[category] = dataObj[category].filter((element) => {
-//             return parseInt(element.id) !== parseInt(req.params.id)
-//         });
-//         await fileRW.writeIntoFile(filePath, dataObj, req, res, urlArr[1]);
-//     } catch (error) {
-//         console.error(error);
-//     }
-// }
+function deleteItem(req, res) {
+    try {
+        let category = req.params.category;
+        let id = req.params.id;
+        let sql = "";
+
+        switch(category) {
+            case 'book': 
+                sql = `DELETE FROM book WHERE id=${id}`;
+                break;
+            case 'author':
+                sql = `DELETE FROM author WHERE id=${id}`;
+                break;
+            case 'publisher': 
+                sql = `DELETE FROM publisher WHERE id=${id}`;
+                break;;
+        }
+
+        bookdb.query(sql, (err, results)=>{
+            if(err) console.log('query' + err);
+            res.json(results);
+        });
+    } catch (error) {
+        console.error(error);
+    }
+}
 
 
-module.exports = {getAll, getById, addItem}
+module.exports = {getAll, getById, addItem, deleteItem}

@@ -30,11 +30,11 @@ function verifyToken(req, res, next) {
     }
 }
 
-// router.post('/signin', userController.signIn);
-// router.post('/signup', userController.signUp);
+router.post('/signin', userController.signIn);
+router.post('/signup', userController.signUp);
 router.get('/:category', libraryController.getAll);
 router.get('/:category/:id', libraryController.getById);
-router.post('/:category', libraryController.addItem);
-// router.delete('/:category/:id', verifyToken, libraryController.deleteItem);
+router.post('/:category', verifyToken, libraryController.addItem);
+router.delete('/:category/:id', verifyToken, libraryController.deleteItem);
 
 module.exports = router;

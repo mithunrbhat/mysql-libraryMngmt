@@ -1,8 +1,5 @@
 node_modules
 bodyToAdd.txt
-config
-constants
 utils
 mock.json
 mockUser.json
-user-controller.js
