@@ -1,7 +1,8 @@
 const url = require('url');
-// const sugerDisplay = require('../utils/sugerCoatJson');
+const sugerDisplay = require('../utils/sugerCoatJson');
 
 const mysql = require('mysql');
+const sugerCoatJson = require('../utils/sugerCoatJson');
 
 const bookdb = mysql.createConnection({
     host : 'localhost',
@@ -19,12 +20,22 @@ bookdb.connect((err)=>{
 
 function getAll(req, res) {
     try {
-        let category = req.params.category;
+        const { category } = req.params;
+        const {orderBy, searchBy} = req.query;
+
+        let orderByArr = [];
+        if (orderBy !== undefined) {
+            orderByArr = orderBy.split(',');
+            orderByArr = orderByArr.map(item => {
+                return item.split('_');
+            });
+        }
+        const [orderByStr, searchByStr] = sugerCoatJson.getString(orderByArr, searchBy)
         let sql = "";
         
         switch(category) {
             case 'book':
-                sql = "SELECT b.id, title, totalPages, rating, isbn, publishedDate, a.id AS authorId, a.name AS 'authors name', a.email AS 'authors email', a.dob,p.id AS publisherId, p.name AS 'publishers name', p.email AS 'publishers email', p.contact, p.established FROM book b JOIN author a ON b.authorId = a.id JOIN publisher p ON b.publisherId = p.id";
+                sql = `SELECT b.id, title, totalPages, rating, isbn, publishedDate, a.id AS authorId, a.name AS authorName, a.email AS authorEmail, a.dob,p.id AS publisherId, p.name AS publisherName, p.email AS publisherEmail, p.contact, p.established FROM book b JOIN author a ON b.authorId = a.id JOIN publisher p ON b.publisherId = p.id ${searchByStr} ${orderByStr}`;
                 break;
             case 'author':
                 sql = "SELECT * FROM author";
@@ -35,7 +46,10 @@ function getAll(req, res) {
         }
 
         bookdb.query(sql, (err, results)=>{
-            if(err) console.log('query' + err);
+            if(err) return console.log('query' + err);
+            if(category === 'book') {
+                results = sugerDisplay.displayBooks(results);
+            }
             res.json(results);
         });
 
@@ -51,7 +65,7 @@ function getById(req, res) {
 
         switch(category) {
             case 'book': 
-                sql = `SELECT b.id, title, totalPages, rating, isbn, publishedDate, a.id AS authorId, a.name AS 'authors name', a.email AS 'authors email', a.dob,p.id AS publisherId, p.name AS 'publishers name', p.email AS 'publishers email', p.contact, p.established FROM book b JOIN author a ON b.authorId = a.id JOIN publisher p ON b.publisherId = p.id WHERE b.id = ${id}`;
+                sql = `SELECT b.id, title, totalPages, rating, isbn, publishedDate, a.id AS authorId, a.name AS authorName, a.email AS authorEmail, a.dob,p.id AS publisherId, p.name AS publisherName, p.email AS publisherEmail, p.contact, p.established FROM book b JOIN author a ON b.authorId = a.id JOIN publisher p ON b.publisherId = p.id WHERE b.id = ${id}`;
                 break;
             case 'author':
                 sql = `SELECT * FROM author WHERE id = ${id}`;
@@ -63,7 +77,10 @@ function getById(req, res) {
 
         bookdb.query(sql, (err, results)=>{
             if(err) return console.log('query' + err);
-            if(results.length > 0) res.json(results);
+            if(results.length > 0) {
+                if(category === 'book') results = sugerDisplay.displayBook(results[0]);
+                res.json(results);
+            }
             else res.json({"message": "Invalid ID"})
         });
 
@@ -74,18 +91,18 @@ function getById(req, res) {
 
 function addItem(req, res) {
     try {
-        let category = req.params.category;
+        const { category } = req.params;
         let sql = "";
-
+        const {title, totalPages, rating, isbn, publishedDate, authorId, publisherId, name, email, dob, contact, established} = req.body;
         switch(category) {
             case 'book': 
-                sql = `INSERT INTO book (id, title, totalPages, rating, isbn, publishedDate, authorId, publisherId) VALUES (null, ${JSON.stringify(req.body.title)}, ${JSON.stringify(req.body.totalPages)}, ${JSON.stringify(req.body.rating)}, ${JSON.stringify(req.body.isbn)}, ${JSON.stringify(req.body.publishedDate)}, ${JSON.stringify(req.body.authorId)}, ${JSON.stringify(req.body.publisherId)})`;
+                sql = `INSERT INTO book (id, title, totalPages, rating, isbn, publishedDate, authorId, publisherId) VALUES (null, ${JSON.stringify(title)}, ${JSON.stringify(totalPages)}, ${JSON.stringify(rating)}, ${JSON.stringify(isbn)}, ${JSON.stringify(publishedDate)}, ${JSON.stringify(authorId)}, ${JSON.stringify(publisherId)})`;
                 break;
             case 'author':
-                sql = `INSERT INTO author (id, name, email, dob) VALUES (null, ${JSON.stringify(req.body.name)}, ${JSON.stringify(req.body.email)}, ${JSON.stringify(req.body.dob)})`;
+                sql = `INSERT INTO author (id, name, email, dob) VALUES (null, ${JSON.stringify(name)}, ${JSON.stringify(email)}, ${JSON.stringify(dob)})`;
                 break;
             case 'publisher': 
-                sql = `INSERT INTO publisher (id, name, email, contact, established) VALUES (null, ${JSON.stringify(req.body.name)}, ${JSON.stringify(req.body.email)}, ${JSON.stringify(req.body.contact)}, ${JSON.stringify(req.body.established)})`;
+                sql = `INSERT INTO publisher (id, name, email, contact, established) VALUES (null, ${JSON.stringify(name)}, ${JSON.stringify(email)}, ${JSON.stringify(contact)}, ${JSON.stringify(established)})`;
                 break;;
         }
 
@@ -101,8 +118,7 @@ function addItem(req, res) {
 
 function deleteItem(req, res) {
     try {
-        let category = req.params.category;
-        let id = req.params.id;
+        const { category, id } = req.params;
         let sql = "";
 
         switch(category) {

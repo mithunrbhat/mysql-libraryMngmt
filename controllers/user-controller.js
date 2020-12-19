@@ -20,7 +20,8 @@ userdb.connect((err)=>{
 
 function signUp(req, res) {
     try {
-        let sql = `INSERT INTO users (username, password) VALUES (${JSON.stringify(req.body.username)}, ${JSON.stringify(req.body.password)})`;
+        const { username, password } = req.body;
+        let sql = `INSERT INTO users (username, password) VALUES (${JSON.stringify(username)}, ${JSON.stringify(password)})`;
         userdb.query(sql, (err, results)=>{
             if(err) console.log('query' + err);
             res.json(results);
