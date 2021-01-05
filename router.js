@@ -30,8 +30,8 @@ function verifyToken(req, res, next) {
     }
 }
 
-router.post('/signin', userController.signIn);
-router.post('/signup', userController.signUp);
+router.post('/signIn', userController.signIn);
+router.post('/signUp', userController.signUp);
 router.get('/:category', libraryController.getAll);
 router.get('/:category/:id', libraryController.getById);
 router.post('/:category', verifyToken, libraryController.addItem);
